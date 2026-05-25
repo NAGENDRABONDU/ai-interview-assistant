@@ -63,6 +63,79 @@ def session_details(session_id: str):
 @router.post("/answer")
 def submit_answer(data: AnswerRequest):
 
+    # Get session
+    session = get_session(data.sessionId)
+
+    if session is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found"
+        )
+
+    # Store candidate answer
+    add_answer(
+        data.sessionId,
+        data.answer
+    )
+
+    # Get current question for evaluation
+    current_question = session["questions"][-1]
+
+    # Gemini evaluation
+    result = evaluate_answer(
+        current_question,
+        data.answer
+    )
+
+    # Store score and feedback
+    add_score(
+        data.sessionId,
+        result["score"]
+    )
+
+    add_feedback(
+        data.sessionId,
+        result["feedback"]
+    )
+
+    # Move to next question
+    increment_question(data.sessionId)
+
+    # Reload updated session
+    session = get_session(data.sessionId)
+
+    # Generate next question
+    next_question = generate_question(
+        session["role"],
+        session["current_question"]
+    )
+
+    # Interview completed
+    if next_question is None:
+
+        report = generate_report(
+            session
+        )
+
+        return {
+            "success": True,
+            "interviewCompleted": True,
+            "report": report
+        }
+
+    # Store next question
+    add_question(
+        data.sessionId,
+        next_question
+    )
+
+    return {
+        "success": True,
+        "score": result["score"],
+        "feedback": result["feedback"],
+        "nextQuestion": next_question
+    }
+
     add_answer(
         data.sessionId,
         data.answer

@@ -1,21 +1,51 @@
-def evaluate_answer(answer: str):
+from app.services.llm_service import ask_gemini
+import json
+import re
 
-    answer = answer.strip()
 
-    if len(answer) < 10:
+def evaluate_answer(question, answer):
+
+    prompt = f"""
+You are a technical interviewer.
+
+Question:
+{question}
+
+Candidate Answer:
+{answer}
+
+Evaluate the answer.
+
+Return ONLY valid JSON.
+
+Example:
+
+{{
+    "score": 8,
+    "feedback": "Good answer."
+}}
+"""
+
+    response = ask_gemini(prompt)
+
+    try:
+        # Remove markdown code fences
+        cleaned = re.sub(
+            r"```json|```",
+            "",
+            response
+        ).strip()
+
+        result = json.loads(cleaned)
+
         return {
-            "score": 2,
-            "feedback": "Answer is too short."
+            "score": int(result["score"]),
+            "feedback": result["feedback"]
         }
 
-    elif len(answer) < 30:
+    except Exception as e:
+
         return {
             "score": 5,
-            "feedback": "Good attempt. Add more explanation."
-        }
-
-    else:
-        return {
-            "score": 8,
-            "feedback": "Good answer with reasonable explanation."
+            "feedback": f"JSON Parse Error: {str(e)}"
         }

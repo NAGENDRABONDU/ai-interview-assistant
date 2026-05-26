@@ -27,6 +27,11 @@ Example:
 """
 
     response = ask_gemini(prompt)
+    if response is None:
+        return {
+            "score": 5,
+            "feedback": "AI evaluation temporarily unavailable. Using fallback evaluation."
+    }
 
     try:
         # Remove markdown code fences

@@ -13,7 +13,10 @@ from app.memory.session_manager import (
     get_session,
     increment_question
 )
-from app.services.question_service import generate_question
+from app.services.question_service import (
+    generate_question,
+    generate_ai_question
+)
 from app.services.evaluation_service import evaluate_answer
 from app.services.report_service import generate_report
 from app.utils.logger import logger
@@ -32,7 +35,17 @@ def start_interview(data: StartInterviewRequest):
 
     logger.info(f"Session Created : {session_id}")
 
-    question = generate_question(data.role)
+    question = generate_ai_question(
+        data.role,
+        data.experience,
+        []
+    )
+
+    if not question:
+        question = generate_question(
+            data.role,
+            0
+        )
 
     add_question(session_id, question)
 
@@ -65,6 +78,127 @@ def submit_answer(data: AnswerRequest):
 
     # Get session
     session = get_session(data.sessionId)
+
+    if session is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found"
+        )
+
+    # Check interview completion
+    if session["current_question"] >= session["max_questions"]:
+        report = generate_report(session)
+
+        return {
+            "success": True,
+            "interviewCompleted": True,
+            "report": report
+        }
+
+    # Store answer
+    add_answer(
+        data.sessionId,
+        data.answer
+    )
+
+    # Current question
+    current_question = session["questions"][-1]
+
+    # Evaluate answer
+    result = evaluate_answer(
+        current_question,
+        data.answer
+    )
+
+    # Store evaluation
+    add_score(
+        data.sessionId,
+        result["score"]
+    )
+
+    add_feedback(
+        data.sessionId,
+        result["feedback"]
+    )
+
+    # Increment question counter
+    increment_question(data.sessionId)
+
+    # Reload updated session
+    session = get_session(data.sessionId)
+
+    # Interview completed?
+    if session["current_question"] >= session["max_questions"]:
+
+        report = generate_report(session)
+
+        return {
+            "success": True,
+            "interviewCompleted": True,
+            "report": report
+        }
+
+    # Generate next question
+    try:
+        next_question = generate_ai_question(
+            session["role"],
+            session["experience"],
+            session["questions"]
+        )
+
+        if not next_question:
+            next_question = generate_question(
+                session["role"],
+                session["current_question"]
+            )
+
+    except Exception:
+
+        next_question = generate_question(
+            session["role"],
+            session["current_question"]
+        )
+
+    # Safety check
+    if next_question is None:
+
+        report = generate_report(session)
+
+        return {
+            "success": True,
+            "interviewCompleted": True,
+            "report": report
+        }
+
+    # Store next question
+    add_question(
+        data.sessionId,
+        next_question
+    )
+
+    return {
+        "success": True,
+        "score": result["score"],
+        "feedback": result["feedback"],
+        "nextQuestion": next_question
+    }
+
+    # Get session
+    session = get_session(data.sessionId)
+    if session is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found"
+    )
+    if session["current_question"] >= session["max_questions"]:
+
+        report = generate_report(session)
+
+        return {
+            "success": True,
+            "interviewCompleted": True,
+            "report": report
+    }
 
     if session is None:
         raise HTTPException(
@@ -105,82 +239,28 @@ def submit_answer(data: AnswerRequest):
     session = get_session(data.sessionId)
 
     # Generate next question
-    next_question = generate_question(
-        session["role"],
-        session["current_question"]
-    )
-
-    # Interview completed
-    if next_question is None:
-
-        report = generate_report(
-            session
+    try:
+        next_question = generate_ai_question(
+            session["role"],
+            session["experience"],
+            session["questions"]
         )
-
-        return {
-            "success": True,
-            "interviewCompleted": True,
-            "report": report
-        }
-
+        if not next_question:
+            next_question = generate_question(
+                session["role"],
+                session["current_question"]
+            )
+    except Exception:
+        next_question = generate_question(
+            session["role"],
+            session["current_question"]
+        )
+    
     # Store next question
     add_question(
         data.sessionId,
         next_question
     )
-
-    return {
-        "success": True,
-        "score": result["score"],
-        "feedback": result["feedback"],
-        "nextQuestion": next_question
-    }
-
-    add_answer(
-        data.sessionId,
-        data.answer
-    )
-
-    result = evaluate_answer(
-        data.answer
-    )
-
-    add_score(
-        data.sessionId,
-        result["score"]
-    )
-
-    add_feedback(
-        data.sessionId,
-        result["feedback"]
-    )
-
-    increment_question(data.sessionId)
-
-    session = get_session(data.sessionId)
-
-    next_question = generate_question(
-        session["role"],
-        session["current_question"]
-    )
-
-    if next_question is None:
-
-        report = generate_report(
-            session
-        )
-
-        return {
-            "success": True,
-            "interviewCompleted": True,
-            "report": report
-        }
-
-    if next_question:
-        add_question(
-            data.sessionId,
-            next_question
-        )
 
     return {
         "success": True,

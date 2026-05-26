@@ -11,6 +11,7 @@ def create_session(role, experience, interview_type):
         "experience": experience,
         "interview_type": interview_type,
         "current_question": 0,
+        "max_questions": 10,
         "questions": [],
         "answers": [],
         "scores": [],

@@ -4,15 +4,14 @@ from config import GEMINI_API_KEY
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-model = genai.GenerativeModel(
-    "gemini-2.5-flash"
-)
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def ask_gemini(prompt: str):
+    try:
+        response = model.generate_content(prompt)
+        return response.text
 
-    response = model.generate_content(
-        prompt
-    )
-
-    return response.text
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        return None

@@ -1,28 +1,34 @@
 import uuid
 
+from app.database.session_repository import (
+    create_session_db_auto,
+    get_session_db
+)
 sessions = {}
 
 
-def create_session(role, experience, interview_type):
-    session_id = str(uuid.uuid4())
+def create_session(
+    role,
+    experience,
+    interview_type
+):
 
-    sessions[session_id] = {
-        "role": role,
-        "experience": experience,
-        "interview_type": interview_type,
-        "current_question": 0,
-        "max_questions": 10,
-        "questions": [],
-        "answers": [],
-        "scores": [],
-        "feedback": []
-    }
-    # print(sessions)
-    return session_id
-
+    return create_session_db_auto(
+        role,
+        experience,
+        interview_type
+    )
 
 def get_session(session_id):
-    return sessions.get(session_id)
+
+    session = get_session_db(
+        session_id
+    )
+
+    if session is None:
+        return None
+
+    return dict(session)
 
 def update_session(session_id, key, value):
     if session_id in sessions:

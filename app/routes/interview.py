@@ -241,3 +241,21 @@ def submit_answer(data: AnswerRequest):
         "feedback": result["feedback"],
         "nextQuestion": next_question
     }
+
+@router.get("/report/{session_id}")
+def interview_report(session_id: str):
+
+    session = get_session(session_id)
+
+    if session is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found"
+        )
+
+    report = generate_report(session)
+
+    return {
+        "success": True,
+        "report": report
+    }

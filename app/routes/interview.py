@@ -1,5 +1,9 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
+from app.services.pdf_service import (
+    generate_pdf_report
+)
 from app.models.interview import (
     StartInterviewRequest,
     AnswerRequest
@@ -242,6 +246,7 @@ def submit_answer(data: AnswerRequest):
         "nextQuestion": next_question
     }
 
+
 @router.get("/report/{session_id}")
 def interview_report(session_id: str):
 
@@ -259,3 +264,37 @@ def interview_report(session_id: str):
         "success": True,
         "report": report
     }
+
+
+@router.get("/report/{session_id}/pdf")
+def download_pdf_report(session_id: str):
+
+    session = get_session(
+        session_id
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found"
+        )
+
+    report = generate_report(
+        session
+    )
+
+    pdf_file = (
+        f"report_{session_id}.pdf"
+    )
+
+    generate_pdf_report(
+        session,
+        report,
+        pdf_file
+    )
+
+    return FileResponse(
+        pdf_file,
+        media_type="application/pdf",
+        filename=pdf_file
+    )

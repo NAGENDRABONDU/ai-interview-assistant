@@ -1,12 +1,15 @@
+from app.database.session_repository import get_scores_db
+
+
 def generate_report(session):
 
-    total_score = sum(
-        session["scores"]
+    scores = get_scores_db(
+        session["session_id"]
     )
 
-    total_questions = len(
-        session["scores"]
-    )
+    total_score = sum(scores)
+
+    total_questions = len(scores)
 
     average_score = (
         total_score / total_questions

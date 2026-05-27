@@ -1,10 +1,12 @@
-import uuid
-
 from app.database.session_repository import (
     create_session_db_auto,
-    get_session_db
+    get_session_db,
+    add_question_db,
+    add_answer_db,
+    add_score_db,
+    add_feedback_db,
+    increment_question_db
 )
-sessions = {}
 
 
 def create_session(
@@ -19,6 +21,7 @@ def create_session(
         interview_type
     )
 
+
 def get_session(session_id):
 
     session = get_session_db(
@@ -30,31 +33,41 @@ def get_session(session_id):
 
     return dict(session)
 
-def update_session(session_id, key, value):
-    if session_id in sessions:
-        sessions[session_id][key] = value
 
 def add_question(session_id, question):
 
-    if session_id in sessions:
-        sessions[session_id]["questions"].append(question)
+    add_question_db(
+        session_id,
+        question
+    )
+
 
 def increment_question(session_id):
 
-    if session_id in sessions:
-        sessions[session_id]["current_question"] += 1
+    increment_question_db(
+        session_id
+    )
+
 
 def add_answer(session_id, answer):
 
-    if session_id in sessions:
-        sessions[session_id]["answers"].append(answer)
+    add_answer_db(
+        session_id,
+        answer
+    )
+
 
 def add_score(session_id, score):
 
-    if session_id in sessions:
-        sessions[session_id]["scores"].append(score)
+    add_score_db(
+        session_id,
+        score
+    )
+
 
 def add_feedback(session_id, feedback):
 
-    if session_id in sessions:
-        sessions[session_id]["feedback"].append(feedback)
+    add_feedback_db(
+        session_id,
+        feedback
+    )
